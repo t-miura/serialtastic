@@ -22,4 +22,4 @@
 #define MAX_CHANNELS            8
 
 // Message payload size
-#define MAX_TEXT_PAYLOAD_LEN    230
+#define MAX_TEXT_PAYLOAD_LEN    200

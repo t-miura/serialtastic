@@ -930,6 +930,7 @@ void TerminalUI::drawInputBar() {
 }
 
 void TerminalUI::drawFooter() {
+    // Row 29: Action / Shortcut Keys
     moveCursor(29, 1);
     terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_WHITE);
     if (notification.active) {
@@ -937,7 +938,33 @@ void TerminalUI::drawFooter() {
     } else {
         terminal.write(" [F1]Node Info [F2]Chan [F3]Chat [F4]DM [F5]Logs [Tab]Focus [Enter]Send         ");
     }
-    terminal.write(ANSI_RESET);
+    terminal.write("\x1B[K" ANSI_RESET);
+
+    // Row 30: Persistent System & Heap Status Bar
+    moveCursor(30, 1);
+    terminal.write(ANSI_BG_BLACK ANSI_FG_BRIGHT_CYAN);
+    char statBuf[81];
+    LocalRadioInfo radio = client.getRadioInfo();
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t minHeap = ESP.getMinFreeHeap();
+
+    if (radio.radio_free_heap > 0) {
+        snprintf(statBuf, sizeof(statBuf), " ESP32: %uKB (Min: %uKB) | Radio: %s | Node Heap: %u B (Min: %u B)",
+                 (unsigned int)(freeHeap / 1024),
+                 (unsigned int)(minHeap / 1024),
+                 client.isSynced() ? "SYNCED" : "SYNCING",
+                 (unsigned int)radio.radio_free_heap,
+                 (unsigned int)radio.radio_min_heap);
+    } else {
+        snprintf(statBuf, sizeof(statBuf), " ESP32: %uKB (Min: %uKB) | Radio: %s (%s) | Logs: %u lines",
+                 (unsigned int)(freeHeap / 1024),
+                 (unsigned int)(minHeap / 1024),
+                 client.isSynced() ? "SYNCED" : "SYNCING",
+                 radio.fw_version[0] ? radio.fw_version : "Meshtastic",
+                 (unsigned int)client.getLogCount());
+    }
+    terminal.write(statBuf);
+    terminal.write("\x1B[K" ANSI_RESET);
 }
 
 void TerminalUI::scrollLogUp(int lines) {
