@@ -36,6 +36,15 @@ void setup() {
     Serial.println("   SERIALTASTIC - Meshtastic FabGL VGA   ");
     Serial.println("========================================");
 
+    // Check and initialize PSRAM if present
+    if (psramInit()) {
+        Serial.printf("PSRAM Enabled: %u MB Total, %u KB Free\n",
+                      (unsigned int)(ESP.getPsramSize() / (1024 * 1024)),
+                      (unsigned int)(ESP.getFreePsram() / 1024));
+    } else {
+        Serial.println("PSRAM: Not detected or not available on module");
+    }
+
     // Disable Watchdogs that might interfere with VGA generation
     disableCore0WDT();
     disableCore1WDT();

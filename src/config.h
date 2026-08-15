@@ -17,8 +17,8 @@
 #define VGA_SCREEN_ROWS         30
 
 // Storage Limits
-#define MAX_NODES_IN_STORE      100
-#define MAX_MESSAGES_IN_STORE   150
+#define MAX_NODES_IN_STORE      200
+#define MAX_MESSAGES_IN_STORE   300
 #define MAX_CHANNELS            8
 
 // Message payload size

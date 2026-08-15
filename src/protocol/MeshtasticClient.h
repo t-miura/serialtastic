@@ -45,7 +45,7 @@ private:
     uint32_t lastSyncAttemptTime;
     uint32_t lastTelemetryPollTime;
 
-    static constexpr size_t MAX_LOG_ENTRIES = 200;
+    static constexpr size_t MAX_LOG_ENTRIES = 400;
     LogEntry logEntries[MAX_LOG_ENTRIES];
     size_t logEntryCount;
     size_t logEntryHead;

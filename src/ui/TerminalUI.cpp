@@ -565,19 +565,19 @@ void TerminalUI::drawDividers() {
     // Header divider (Row 2)
     moveCursor(2, 1);
     terminal.write(ANSI_FG_BRIGHT_BLACK);
-    terminal.write("----------------------------+--------------------------------------------------");
+    terminal.write("----------------------------+-------------------------------------------------");
     terminal.write(ANSI_RESET);
 
-    // Vertical divider on rows 3..24
-    for (int r = 3; r <= 24; r++) {
+    // Vertical divider on rows 3..23
+    for (int r = 3; r <= 23; r++) {
         moveCursor(r, 28);
         terminal.write(ANSI_FG_BRIGHT_BLACK "|" ANSI_RESET);
     }
 
-    // Bottom divider (Row 25)
-    moveCursor(25, 1);
+    // Bottom divider (Row 24)
+    moveCursor(24, 1);
     terminal.write(ANSI_FG_BRIGHT_BLACK);
-    terminal.write("----------------------------+--------------------------------------------------");
+    terminal.write("----------------------------+-------------------------------------------------");
     terminal.write(ANSI_RESET);
 }
 
@@ -591,7 +591,7 @@ void TerminalUI::drawNodesPane() {
     }
 
     size_t totalNodes = nodeStore.getNodeCount();
-    int visibleRows = 21; // rows 4 to 24
+    int visibleRows = 20; // rows 4 to 23
 
     for (int i = 0; i < visibleRows; i++) {
         moveCursor(4 + i, 1);
@@ -785,7 +785,7 @@ void TerminalUI::drawMessagesPane() {
         }
     }
 
-    int visibleRows = 21; // rows 4 to 24
+    int visibleRows = 20; // rows 4 to 23
     int startLineIdx = 0;
     if (displayLines.size() > (size_t)visibleRows) {
         startLineIdx = displayLines.size() - visibleRows;
@@ -829,8 +829,8 @@ void TerminalUI::drawMessagesPane() {
 }
 
 void TerminalUI::drawInputBar() {
-    // Row 26: Target info line OR Notification Banner
-    moveCursor(26, 1);
+    // Row 25: Target info line OR Notification Banner
+    moveCursor(25, 1);
     char targetLine[80];
 
     if (notification.active) {
@@ -862,16 +862,16 @@ void TerminalUI::drawInputBar() {
     }
 
     size_t tl = strlen(targetLine);
-    while (tl < 79) targetLine[tl++] = ' ';
-    targetLine[79] = '\0';
+    while (tl < 78) targetLine[tl++] = ' ';
+    targetLine[78] = '\0';
     terminal.write(targetLine);
     terminal.write(ANSI_RESET);
 
-    // Row 27: Input Box with Horizontal Scrolling & In-Line Block Cursor
-    moveCursor(27, 1);
+    // Row 26: Input Box with In-Line Length Counter & Block Cursor
+    moveCursor(26, 1);
     terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_GREEN ANSI_BOLD " > Text: " ANSI_RESET);
 
-    const int VIEW_WIDTH = 68;
+    const int VIEW_WIDTH = 55;
     size_t textLen = strlen(currentInputText);
     
     // Calculate scroll offset to keep cursor in view
@@ -916,55 +916,68 @@ void TerminalUI::drawInputBar() {
     }
     terminal.write(ANSI_RESET);
 
-    // Row 28: Status & Length info line
-    moveCursor(28, 1);
-    terminal.write(ANSI_FG_BRIGHT_BLACK);
-    char infoLine[80];
-    snprintf(infoLine, sizeof(infoLine), " [Length: %u/%u chars | Cursor: %u]  (Left/Right to edit, Enter to send)",
-             (unsigned int)textLen, (unsigned int)MAX_TEXT_PAYLOAD_LEN, (unsigned int)inputCursorPos);
-    size_t il = strlen(infoLine);
-    while (il < 79) infoLine[il++] = ' ';
-    infoLine[79] = '\0';
-    terminal.write(infoLine);
-    terminal.write(ANSI_RESET);
+    // In-Line Length & Limit indicator on right side of Row 26
+    char lenBuf[16];
+    snprintf(lenBuf, sizeof(lenBuf), " [%3u/%3u] ", (unsigned int)textLen, (unsigned int)MAX_TEXT_PAYLOAD_LEN);
+    terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_CYAN ANSI_BOLD);
+    terminal.write(lenBuf);
+    terminal.write(ANSI_RESET "   ");
 }
 
 void TerminalUI::drawFooter() {
-    // Row 29: Action / Shortcut Keys
-    moveCursor(29, 1);
-    terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_WHITE);
+    // Row 27: Action / Shortcut Keys Bar (Strictly 78 characters)
+    moveCursor(27, 1);
+    terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_WHITE ANSI_BOLD);
+    char footerBuf[80];
     if (notification.active) {
-        terminal.write(" [F1]Info [F2]Chan [F3]Chat [F4]DM [F5]Logs " ANSI_BG_YELLOW ANSI_FG_BLACK ANSI_BOLD "[F6]JUMP" ANSI_RESET ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_WHITE " [Tab]Focus [Enter]Send   ");
+        snprintf(footerBuf, sizeof(footerBuf), " [F1]Info [F2]Chan [F3]Chat [F4]DM [F5]Logs [F6]JUMP [Tab]Focus [Enter]Send");
     } else {
-        terminal.write(" [F1]Node Info [F2]Chan [F3]Chat [F4]DM [F5]Logs [Tab]Focus [Enter]Send         ");
+        snprintf(footerBuf, sizeof(footerBuf), " [F1]Info [F2]Chan [F3]Chat [F4]DM [F5]Logs [Tab]Focus [Enter]Send");
     }
-    terminal.write("\x1B[K" ANSI_RESET);
+    size_t flen = strlen(footerBuf);
+    while (flen < 78) footerBuf[flen++] = ' ';
+    footerBuf[78] = '\0';
+    terminal.write(footerBuf);
+    terminal.write(ANSI_RESET);
 
-    // Row 30: Persistent System & Heap Status Bar
-    moveCursor(30, 1);
+    // Row 28: Persistent System, PSRAM & Heap Status Bar (Strictly 78 characters)
+    moveCursor(28, 1);
     terminal.write(ANSI_BG_BLACK ANSI_FG_BRIGHT_CYAN);
-    char statBuf[81];
+    char statBuf[80];
     LocalRadioInfo radio = client.getRadioInfo();
     uint32_t freeHeap = ESP.getFreeHeap();
-    uint32_t minHeap = ESP.getMinFreeHeap();
+
+    bool hasPsram = psramFound();
+    char psramStr[18] = "";
+    if (hasPsram) {
+        snprintf(psramStr, sizeof(psramStr), " | PSRAM:%uMB", (unsigned int)(ESP.getFreePsram() / (1024 * 1024)));
+    }
 
     if (radio.radio_free_heap > 0) {
-        snprintf(statBuf, sizeof(statBuf), " ESP32: %uKB (Min: %uKB) | Radio: %s | Node Heap: %u B (Min: %u B)",
+        snprintf(statBuf, sizeof(statBuf), " ESP32:%uKB%s | Radio:%s | Node Heap:%u B (Min:%u B)",
                  (unsigned int)(freeHeap / 1024),
-                 (unsigned int)(minHeap / 1024),
+                 psramStr,
                  client.isSynced() ? "SYNCED" : "SYNCING",
                  (unsigned int)radio.radio_free_heap,
                  (unsigned int)radio.radio_min_heap);
     } else {
-        snprintf(statBuf, sizeof(statBuf), " ESP32: %uKB (Min: %uKB) | Radio: %s (%s) | Logs: %u lines",
+        snprintf(statBuf, sizeof(statBuf), " ESP32:%uKB%s | Radio:%s (%s) | Logs:%u",
                  (unsigned int)(freeHeap / 1024),
-                 (unsigned int)(minHeap / 1024),
+                 psramStr,
                  client.isSynced() ? "SYNCED" : "SYNCING",
                  radio.fw_version[0] ? radio.fw_version : "Meshtastic",
                  (unsigned int)client.getLogCount());
     }
+    size_t slen = strlen(statBuf);
+    while (slen < 78) {
+        statBuf[slen++] = ' ';
+    }
+    statBuf[78] = '\0';
     terminal.write(statBuf);
-    terminal.write("\x1B[K" ANSI_RESET);
+    terminal.write(ANSI_RESET);
+
+    // Park cursor safely at (1, 1)
+    moveCursor(1, 1);
 }
 
 void TerminalUI::scrollLogUp(int lines) {
@@ -1019,15 +1032,28 @@ void TerminalUI::drawLogsView() {
     uint32_t freeHeap = ESP.getFreeHeap();
     uint32_t minHeap = ESP.getMinFreeHeap();
     LocalRadioInfo radio = client.getRadioInfo();
+    bool hasPsram = psramFound();
 
     if (radio.radio_free_heap > 0) {
-        snprintf(headBuf, sizeof(headBuf), " MESHTASTIC LOGS | ESP32: %uKB | Node Heap: %u B (Min: %u B) ",
-                 (unsigned int)(freeHeap / 1024),
-                 (unsigned int)radio.radio_free_heap,
-                 (unsigned int)radio.radio_min_heap);
+        if (hasPsram) {
+            snprintf(headBuf, sizeof(headBuf), " MESHTASTIC LOGS | ESP32: %uKB | PSRAM: %uMB | Node Heap: %u B ",
+                     (unsigned int)(freeHeap / 1024),
+                     (unsigned int)(ESP.getFreePsram() / (1024 * 1024)),
+                     (unsigned int)radio.radio_free_heap);
+        } else {
+            snprintf(headBuf, sizeof(headBuf), " MESHTASTIC LOGS | ESP32: %uKB | Node Heap: %u B (Min: %u B) ",
+                     (unsigned int)(freeHeap / 1024),
+                     (unsigned int)radio.radio_free_heap,
+                     (unsigned int)radio.radio_min_heap);
+        }
     } else {
-        snprintf(headBuf, sizeof(headBuf), " MESHTASTIC SERIAL LOGS | ESP32 Heap: %uKB Free (Min: %uKB) ",
-                 (unsigned int)(freeHeap / 1024), (unsigned int)(minHeap / 1024));
+        if (hasPsram) {
+            snprintf(headBuf, sizeof(headBuf), " MESHTASTIC LOGS | ESP32: %uKB Free | PSRAM: %uMB Free ",
+                     (unsigned int)(freeHeap / 1024), (unsigned int)(ESP.getFreePsram() / (1024 * 1024)));
+        } else {
+            snprintf(headBuf, sizeof(headBuf), " MESHTASTIC LOGS | ESP32: %uKB Free (Min: %uKB) ",
+                     (unsigned int)(freeHeap / 1024), (unsigned int)(minHeap / 1024));
+        }
     }
     terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_GREEN ANSI_BOLD);
     terminal.write(headBuf);
@@ -1038,11 +1064,12 @@ void TerminalUI::drawLogsView() {
     terminal.write(ANSI_FG_BRIGHT_BLACK "+------------------------------------------------------------------------------+" ANSI_RESET);
 
     size_t totalLogs = client.getLogCount();
-    int startIndex = (int)totalLogs - 25 - logScrollOffset;
+    int visibleRows = 23; // rows 3 to 25
+    int startIndex = (int)totalLogs - visibleRows - logScrollOffset;
     if (startIndex < 0) startIndex = 0;
 
-    // Viewport rows (Rows 3 to 27 = 25 lines)
-    for (int r = 0; r < 25; r++) {
+    // Viewport rows (Rows 3 to 25 = 23 lines)
+    for (int r = 0; r < visibleRows; r++) {
         moveCursor(3 + r, 1);
         terminal.write(ANSI_FG_BRIGHT_BLACK "|" ANSI_RESET);
 
@@ -1094,26 +1121,29 @@ void TerminalUI::drawLogsView() {
         terminal.write(ANSI_FG_BRIGHT_BLACK "|" ANSI_RESET "\x1B[K");
     }
 
-    // Bottom border (Row 28)
-    moveCursor(28, 1);
+    // Bottom border (Row 26)
+    moveCursor(26, 1);
     terminal.write(ANSI_FG_BRIGHT_BLACK "+------------------------------------------------------------------------------+" ANSI_RESET);
 
-    // Help bar (Row 29)
-    moveCursor(29, 1);
+    // Help bar (Row 27)
+    moveCursor(27, 1);
     terminal.write(ANSI_BG_DARK_GRAY ANSI_FG_BRIGHT_WHITE);
-    char footBuf[81];
+    char footBuf[80];
     if (logHorizOffset > 0) {
-        snprintf(footBuf, sizeof(footBuf), " [F5]/[ESC] Exit  [Up]/[Dn] Scroll  [Left]/[Right] Horiz (+%d)  [End] Reset ", logHorizOffset);
+        snprintf(footBuf, sizeof(footBuf), " [F5]/[ESC] Exit  [Up]/[Dn] Scroll  [Left]/[Right] Horiz (+%d)  [End] Reset", logHorizOffset);
     } else {
-        snprintf(footBuf, sizeof(footBuf), " [F5]/[ESC] Exit  [Up]/[Dn] Scroll  [Left]/[Right] Horiz Pan  [End] Latest ");
+        snprintf(footBuf, sizeof(footBuf), " [F5]/[ESC] Exit  [Up]/[Dn] Scroll  [Left]/[Right] Horiz Pan  [End] Latest");
     }
+    size_t fblen = strlen(footBuf);
+    while (fblen < 78) footBuf[fblen++] = ' ';
+    footBuf[78] = '\0';
     terminal.write(footBuf);
-    terminal.write("\x1B[K" ANSI_RESET);
+    terminal.write(ANSI_RESET);
 
-    // Status bar (Row 30)
-    moveCursor(30, 1);
+    // Status bar (Row 28)
+    moveCursor(28, 1);
     terminal.write(ANSI_BG_BLACK ANSI_FG_BRIGHT_CYAN);
-    char statBuf[81];
+    char statBuf[80];
     if (radio.radio_free_heap > 0) {
         snprintf(statBuf, sizeof(statBuf), " Lines: %u | Offset: V:%d H:+%d | Radio Heap: %u B (Min: %u B)",
                  (unsigned int)totalLogs,
@@ -1128,6 +1158,12 @@ void TerminalUI::drawLogsView() {
                  logHorizOffset,
                  client.isSynced() ? "SYNCED" : "SYNCING");
     }
+    size_t lslen = strlen(statBuf);
+    while (lslen < 78) {
+        statBuf[lslen++] = ' ';
+    }
+    statBuf[78] = '\0';
     terminal.write(statBuf);
-    terminal.write("\x1B[K" ANSI_RESET);
+    terminal.write(ANSI_RESET);
+    moveCursor(1, 1);
 }
